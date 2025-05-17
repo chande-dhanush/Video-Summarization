@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIDSUM AI - Advanced Video Summarizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+    <style>
+        /* Additional styles for larger text and chat interface */
+        body {
+            font-size: 22px; /* Increased base font size */
+        }
+        
+        .title {
+            font-size: 3rem;
+        }
+        
+        .subtitle {
+            font-size: 2rem;
+        }
+        
+        .upload-area p {
+            font-size: 1.5rem;
+        }
+        
+        .custom-file-upload {
+            font-size: 1.5rem;
+            padding: 15px 25px;
+        }
+        
+        #file-chosen {
+            font-size: 1.4rem;
+        }
+        
+        .analyze-btn {
+            font-size: 1.5rem;
+            padding: 15px 30px;
+        }
+        
+        .results-header h2 {
+            font-size: 2.5rem;
+        }
+        
+        .tab-btn {
+            font-size: 1.6rem;
+            background: rgba(5, 5, 15, 0.7);
+            color: #fff;
+            border: 1px solid rgba(0, 153, 255, 0.3);
+            padding: 15px 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .tab-btn:hover, .tab-btn.active {
+            background: rgba(0, 153, 255, 0.4);
+        }
+        
+        .insight-card {
+            margin-bottom: 30px;
+            background: rgba(10, 10, 26, 0.8);
+            border-radius: 10px;
+            border: 2px solid rgba(0, 153, 255, 0.3);
+            overflow: hidden;
+        }
+        
+        .insight-card h3 {
+            font-size: 2rem;
+            background: rgba(0, 153, 255, 0.2);
+            padding: 20px 25px;
+            margin: 0;
+        }
+        
+        .card-content {
+            padding: 30px;
+        }
+        
+        .card-content p {
+            font-size: 1.8rem; /* Very large font size for summary text */
+            line-height: 1.7;
+        }
+        
+        /* Add some spacing between tabs and content */
+        .tab-content {
+            margin-top: 20px;
+        }
+        
+        .chat-container h3 {
+            font-size: 2rem;
+            padding: 10px 0;
+        }
+        
+        .message {
+            font-size: 1.7rem;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 85%;
+        }
+        
+        .chat-input {
+            font-size: 1.5rem;
+        }
+        
+        .chat-send-btn {
+            font-size: 1.5rem;
+        }
+        
+        .new-analysis-btn {
+            font-size: 1.5rem;
+            padding: 15px 30px;
+        }
+        
+        .result-container {
+            display: flex;
+            flex-direction: row;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .result-tabs-container {
+            flex: 1;
+        }
+        
+        .chat-container {
+            flex: 1;
+            background: rgba(10, 10, 26, 0.8);
+            border-radius: 10px;
+            border: 2px solid rgba(0, 153, 255, 0.3);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 600px;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(5, 5, 15, 0.5);
+            border-radius: 10px;
+        }
+        
+        .chat-input-container {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(5, 5, 15, 0.7);
+            color: #fff;
+            font-family: 'Rajdhani', sans-serif;
+            border: 2px solid rgba(0, 153, 255, 0.3);
+        }
+        
+        .chat-send-btn {
+            background: #0099ff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 15px 25px;
+            cursor: pointer;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .chat-send-btn:hover {
+            background: #007acc;
+        }
+        
+        .user-message {
+            background: rgba(0, 153, 255, 0.3);
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        
+        .bot-message {
+            background: rgba(30, 30, 60, 0.5);
+            align-self: flex-start;
+            margin-right: auto;
+        }
+        
+        /* Loading animation for chat */
+        .loading-message {
+            background: rgba(30, 30, 60, 0.3);
+            position: relative;
+        }
+        
+        .loading-message:after {
+            content: "...";
+            position: absolute;
+            right: 15px;
+            animation: thinking 1.5s infinite;
+            opacity: 0.7;
+        }
+        
+        @keyframes thinking {
+            0% { content: "."; }
+            33% { content: ".."; }
+            66% { content: "..."; }
+            100% { content: "."; }
+        }
+        
+        /* Make the messages appear as a flex container */
+        .chat-messages {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        @media (max-width: 992px) {
+            .result-container {
+                flex-direction: column;
+            }
+            
+            .chat-container {
+                height: 500px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="vanta-background"></div>
+    
+    <div class="container">
+        <div class="logo-container">
+            <div class="logo">V</div>
+            <h1 class="title">PRISM AI</h1>
+        </div>
+        <h2 class="subtitle">Advanced Video Summarization</h2>
+        
+        <div class="upload-container">
+            <form id="upload-form" method="post" enctype="multipart/form-data">
+                <div class="upload-area" id="drop-area">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <p>Drag & drop your video or click to browse</p>
+                    <label for="video-upload" class="custom-file-upload">
+                        <i class="fas fa-file-video"></i> Select Video
+                    </label>
+                    <input id="video-upload" type="file" name="video" accept="video/*" required>
+                </div>
+                <span id="file-chosen">No file selected</span>
+                <button type="submit" class="analyze-btn">
+                    <span class="btn-text">Analyze & Summarize</span>
+                    <span class="btn-icon"><i class="fas fa-brain"></i></span>
+                </button>
+            </form>
+        </div>
+
+        <div id="loading" class="processing-container">
+            <div class="scanner"></div>
+            <div class="processing-text">
+                <h3>Processing Video</h3>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <p class="status-text">Analyzing video content and extracting insights...</p>
+            </div>
+        </div>
+
+        <div id="results" class="results">
+            <div class="results-header">
+                <i class="fas fa-check-circle"></i>
+                <h2>Analysis Complete</h2>
+            </div>
+            
+            <div class="result-container">
+                <div class="result-tabs-container">
+                    <div class="result-tabs">
+                        <button class="tab-btn active" data-tab="video-tab">Video Analysis</button>
+                        <button class="tab-btn" data-tab="audio-tab">Audio Transcription</button>
+                        <button class="tab-btn" data-tab="summary-tab">Final Summary</button>
+                    </div>
+                    
+                    <div class="tab-content">
+                        <div id="video-tab" class="tab-pane active">
+                            <div class="insight-card">
+                                <h3><i class="fas fa-video"></i> Video Content Analysis</h3>
+                                <div class="card-content">
+                                    <p id="video-summary"></p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="audio-tab" class="tab-pane">
+                            <div class="insight-card">
+                                <h3><i class="fas fa-headphones"></i> Audio Transcription</h3>
+                                <div class="card-content">
+                                    <p id="audio-transcription"></p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="summary-tab" class="tab-pane">
+                            <div class="insight-card">
+                                <h3><i class="fas fa-file-alt"></i> Final Summary</h3>
+                                <div class="card-content">
+                                    <p id="text-summary"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-container">
+                    <h3><i class="fas fa-comments"></i> Video Content Chat</h3>
+                    <div id="chat-messages" class="chat-messages">
+                        <div class="message bot-message">
+                            Hello! I can answer questions about the video content. What would you like to know?
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chat-input" class="chat-input" placeholder="Ask about the video...">
+                        <button id="chat-send" class="chat-send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="new-analysis" class="new-analysis-btn">
+                <i class="fas fa-redo"></i> Analyze New Video
+            </button>
+        </div>
+
+        <div id="error-message" class="error-container">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h3>Processing Error</h3>
+            <p>An error occurred during video analysis. Please try again with a different video file.</p>
+            <button id="error-retry" class="retry-btn">
+                <i class="fas fa-redo"></i> Try Again
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Initialize 3D background
+        VANTA.NET({
+            el: "#vanta-background",
+            mouseControls: true,
+            touchControls: true,
+            gyroControls: false,
+            minHeight: 200.00,
+            minWidth: 200.00,
+            scale: 1.00,
+            scaleMobile: 1.00,
+            color: 0x0099ff,
+            backgroundColor: 0x0a0a1a,
+            points: 10.00,
+            maxDistance: 25.00,
+            spacing: 16.00
+        });
+
+        // DOM Elements
+        const videoUpload = document.getElementById('video-upload');
+        const fileChosen = document.getElementById('file-chosen');
+        const uploadForm = document.getElementById('upload-form');
+        const resultsDiv = document.getElementById('results');
+        const loadingDiv = document.getElementById('loading');
+        const errorDiv = document.getElementById('error-message');
+        const videoSummaryP = document.getElementById('video-summary');
+        const audioTranscriptionP = document.getElementById('audio-transcription');
+        const textSummaryP = document.getElementById('text-summary');
+        const dropArea = document.getElementById('drop-area');
+        const newAnalysisBtn = document.getElementById('new-analysis');
+        const errorRetryBtn = document.getElementById('error-retry');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanes = document.querySelectorAll('.tab-pane');
+        const chatInput = document.getElementById('chat-input');
+        const chatSendBtn = document.getElementById('chat-send');
+        const chatMessages = document.getElementById('chat-messages');
+        
+        // Video data storage
+        let videoData = {
+            videoSummary: "",
+            audioTranscription: "",
+            textSummary: ""
+        };
+
+        // File upload handling
+        videoUpload.addEventListener('change', function() {
+            fileChosen.textContent = this.files[0] ? this.files[0].name : 'No file selected';
+            if (this.files[0]) {
+                dropArea.classList.add('has-file');
+            } else {
+                dropArea.classList.remove('has-file');
+            }
+        });
+
+        // Drag and drop functionality
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            dropArea.classList.add('highlight');
+        }
+
+        function unhighlight() {
+            dropArea.classList.remove('highlight');
+        }
+
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            videoUpload.files = files;
+            fileChosen.textContent = files[0].name;
+            dropArea.classList.add('has-file');
+        }
+
+        // Form submission
+        uploadForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            loadingDiv.style.display = 'flex';
+            resultsDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
+            
+            // Animate progress bar
+            const progressFill = document.querySelector('.progress-fill');
+            progressFill.style.width = '0%';
+            
+            // Simulate progress (since we can't get real-time progress)
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += Math.random() * 5;
+                    progressFill.style.width = `${progress}%`;
+                }
+            }, 500);
+
+            const formData = new FormData(this);
+
+            fetch('/', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                clearInterval(progressInterval);
+                progressFill.style.width = '100%';
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Store the data for chat usage
+                videoData.videoSummary = data["Video Summary"] || "No video summary available.";
+                videoData.audioTranscription = data["Audio Transcription"] || "No audio transcription available.";
+                videoData.textSummary = data["Final Summary"] || "No summary available.";
+                
+                // Add typing effect to results
+                setTimeout(() => {
+                    loadingDiv.style.display = 'none';
+                    resultsDiv.style.display = 'block';
+                    
+                    typeWriter(videoSummaryP, videoData.videoSummary, 0, 10);
+                    audioTranscriptionP.textContent = videoData.audioTranscription;
+                    textSummaryP.textContent = videoData.textSummary;
+                    
+                    // Reset chat with new data
+                    chatMessages.innerHTML = `
+                        <div class="message bot-message">
+                            Hello! I can answer questions about the video content. What would you like to know?
+                        </div>
+                    `;
+                }, 1000);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                clearInterval(progressInterval);
+                loadingDiv.style.display = 'none';
+                errorDiv.style.display = 'flex';
+            });
+        });
+
+        // Typing effect function
+        function typeWriter(element, text, i, speed) {
+            if (i < text.length) {
+                element.textContent += text.charAt(i);
+                i++;
+                setTimeout(() => typeWriter(element, text, i, speed), speed);
+            }
+        }
+
+        // Tab switching functionality
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all buttons and panes
+                tabBtns.forEach(b => b.classList.remove('active'));
+                tabPanes.forEach(p => p.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding pane
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // Chat functionality
+        function addMessage(content, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.classList.add(isUser ? 'user-message' : 'bot-message');
+            messageDiv.textContent = content;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Send message on button click
+        chatSendBtn.addEventListener('click', () => {
+            const question = chatInput.value.trim();
+            if (question) {
+                addMessage(question, true);
+                chatInput.value = '';
+                
+                // Show loading indicator in chat
+                const loadingMessage = document.createElement('div');
+                loadingMessage.classList.add('message', 'bot-message', 'loading-message');
+                loadingMessage.textContent = "Thinking...";
+                chatMessages.appendChild(loadingMessage);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                // Call the backend API
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: question })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Remove loading message
+                    chatMessages.removeChild(loadingMessage);
+                    
+                    // Add the response
+                    addMessage(data.answer);
+                })
+                .catch(error => {
+                    // Remove loading message
+                    chatMessages.removeChild(loadingMessage);
+                    
+                    // Show error message
+                    addMessage("Sorry, I encountered an error processing your question. Please try again.");
+                    console.error('Error:', error);
+                });
+            }
+        });
+        
+        // Send message on Enter key
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                chatSendBtn.click();
+            }
+        });
+
+        // New analysis button
+        newAnalysisBtn.addEventListener('click', () => {
+            resultsDiv.style.display = 'none';
+            videoUpload.value = '';
+            fileChosen.textContent = 'No file selected';
+            dropArea.classList.remove('has-file');
+            videoSummaryP.textContent = '';
+            audioTranscriptionP.textContent = '';
+            textSummaryP.textContent = '';
+            
+            // Reset video data
+            videoData = {
+                videoSummary: "",
+                audioTranscription: "",
+                textSummary: ""
+            };
+            
+            // Reset chat
+            chatMessages.innerHTML = `
+                <div class="message bot-message">
+                    Hello! I can answer questions about the video content. What would you like to know?
+                </div>
+            `;
+        });
+
+        // Error retry button
+        errorRetryBtn.addEventListener('click', () => {
+            errorDiv.style.display = 'none';
+        });
+
+        // Page load animation
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.querySelector('.container');
+            setTimeout(() => {
+                container.classList.add('loaded');
+            }, 100);
+        });
+    </script>
+</body>
+</html>
